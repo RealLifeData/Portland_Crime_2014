@@ -1,0 +1,308 @@
+---
+title: "Crime in Portland Oregon 2014"
+
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning= FALSE)
+```
+
+
+
+
+
+
+```{r include = FALSE}
+
+library(plyr)
+library(dplyr)
+#library(choroplethr)
+#library(acs)
+#library(choroplethrMaps)
+library(maptools)
+library(rgdal)
+library(zipcode)
+library("ggplot2")
+library("ggmap")
+library("leaflet")
+library("htmlwidgets")
+library("data.table")
+library(knitr)
+
+data("zipcode")
+
+setwd("C:\\Users\\owner\\Desktop")
+
+D <- read.csv("crime_geo.csv")
+D$state <- ", OR"
+
+D2 <- filter(D, Neighborhood != "")
+D2 <- select(D, Major.Offense.Type, Neighborhood, Police.District, state)
+D2$Address <- paste(D2$Neighborhood, D2$state)
+D2$state <- NULL
+D2$Police.District <- NULL
+D2$Neighborhood <- NULL
+
+D2B <- filter(D, Neighborhood != "")
+D2B <- select(D, Major.Offense.Type, Neighborhood, Police.District, state)
+D2B$Address <- paste(D2B$Neighborhood, D2B$state)
+
+
+#D3 <- aggregate (.~Address, D2, length)
+#D3Geo <- geocode(D3$Address)
+#D3$lon <- D3Geo$lon
+#D3$lat <- D3Geo$lat
+#D3$Major.Offense.Type <- NULL
+
+#write.csv(D3, file = "D3.csv")
+
+D4 <- read.csv("D3.csv")
+D4$X <- NULL
+
+
+map<-get_map(location='portland, oregon', zoom=11, maptype = "terrain",
+             source='google',color='color')
+
+
+#Overall Crime ************************************
+
+
+
+O <- aggregate(.~ Address, D2B, length)
+O2 <- select(O, Address, Major.Offense.Type)
+O3 <- merge(O2, D4)
+O3 <- filter(O3, Address != " , OR")
+O3$Per <- O3$Major.Offense.Type/60616
+
+ggmap(map) + 
+  geom_point(data = O3, aes(x = lon, y = lat), 
+             color = "magenta", size = O3$Per *1000,
+             alpha = .5) +
+  labs(x="Longitude",y="Latitude") +
+  ggtitle("Percentage of Crimes")
+
+
+O$state <- NULL
+O$Police.District <- NULL
+O$Neighborhood <- NULL
+OT <- O[order(-O$Major.Offense.Type),]
+OT <- as.data.table(OT)
+OT2 <-  OT[1:10, 1]
+OT2$Count <- OT[1:10, 2]
+colnames(OT2)[colnames(OT2)=="Address"] <- "Neighborhood"
+kable(OT2)
+
+
+
+
+
+#Crime Date
+
+CDate <- select(D, Report.Date, Major.Offense.Type, Neighborhood, state)
+CDate$Address <- NULL
+CDate$Address <- paste(CDate$Neighborhood, CDate$state)
+CDate$Neighborhood <- NULL
+CDate$state <- NULL
+CDate2 <- merge(CDate, D4, by = "Address")
+
+
+
+
+#overall
+DateAgg <- aggregate(.~Report.Date + Major.Offense.Type, CDate, length)
+#DateAgg$Major.Offense.Type <- NULL
+colnames(DateAgg)[colnames(DateAgg) == "Address"] <- "Count"
+#write.csv(DateAgg, file = "datecrime.csv")
+
+DateGraph <- filter(DateAgg, Major.Offense.Type == "Aggravated Assault" |
+                      Major.Offense.Type == "Assault, Simple" |
+                      Major.Offense.Type == "Rape" |
+                      Major.Offense.Type == "Drugs" |
+                      Major.Offense.Type == "Sex Offenses" |
+                      Major.Offense.Type == "Robbery" |
+                      Major.Offense.Type == "DUII")
+
+DateGraph$Major.Offense.Type <- as.character(DateGraph$Major.Offense.Type)
+DateGraph$Major.Offense.Type[DateGraph$Major.Offense.Type ==  "Assault, Simple"] <- "Assault" 
+DateGraph$Major.Offense.Type[DateGraph$Major.Offense.Type ==  "Aggravated Assault"] <- "Assault" 
+DateGraph$Major.Offense.Type <- as.factor(DateGraph$Major.Offense.Type)
+ 
+
+
+library(dygraphs)
+
+DateGraph$Report.Date <- as.Date(DateGraph$Report.Date, format = "%m/%d/%Y")
+
+A <- filter(DateGraph, Major.Offense.Type == "Assault")
+colnames(A)[colnames(A)=="Count"] <- "Assault"
+A2 <- aggregate(.~Report.Date, A, sum)
+
+
+B <- filter(DateGraph, Major.Offense.Type == "Robbery")
+colnames(B)[colnames(B)=="Count"] <- "Robbery"
+
+
+Ds <- filter(DateGraph, Major.Offense.Type == "Drugs")
+colnames(Ds)[colnames(Ds)=="Count"] <- "Drugs"
+
+DU<- filter(DateGraph, Major.Offense.Type == "DUII")
+colnames(DU)[colnames(DU)=="Count"] <- "DUI"
+
+R<- filter(DateGraph, Major.Offense.Type == "Rape")
+colnames(R)[colnames(R)=="Count"] <- "Rape"
+
+S<- filter(DateGraph, Major.Offense.Type == "Sex Offenses")
+colnames(S)[colnames(S)=="Count"] <- "Sex Offenses"
+
+C <- merge(B,Ds,by="Report.Date", all=T)
+C2 <- merge(DU,R,by="Report.Date", all=T )
+C3 <- merge(S, C2, by = "Report.Date", all = T)
+C4 <- merge(C3, C, by = "Report.Date", all = T)
+C5 <- merge(C4, A2, by = "Report.Date", all = T)
+C5$Major.Offense.Type.x <- NULL
+C5$Major.Offense.Type.x.x <- NULL
+C5$Major.Offense.Type.x.y <- NULL
+C5$Major.Offense.Type.y <- NULL
+C5$Major.Offense.Type.y.x <- NULL
+C5$Major.Offense.Type.y.y <- NULL
+
+
+
+C5 <- as.data.table(C5)
+C5[is.na(C5)] = 0
+#C5$Overall <- C5$`Sex Offenses`+ C5$DUI+ C5$Rape +C5$Robbery + C5$Drugs +C5$Assault
+#C5$Overall <- NULL
+
+C6 <- subset(C5, select=c(1, 7,6, 5, 3,2,4))
+
+
+dygraph(C6)%>%
+  dyOptions(stackedGraph = TRUE, colors = c("green", "blue", "brown", "orange", "purple", "red"))%>%
+  dyRangeSelector(height = 20)
+
+
+#AVERAGES 
+
+Averages <- 0
+Averages <- NULL
+Averages$Drugs <- mean(C5$Drugs)
+Averages$Assault <- mean(C5$Assault)
+Averages$Robbery <- mean(C5$Drugs)
+Averages$DUI <- mean(C5$DUI)
+Averages$'Sex Offenses' <- mean(C5$Sex)
+Averages$Rape <- mean(C5$Rape)
+
+Averages <- as.data.frame(Averages)
+
+Avg <- transpose(Averages)
+V <- c("Drugs", "Assault", "Robbery", "DUI", "Sex Offenses", "Rape")
+Avg$Offense <- V
+
+ggplot(data=Avg, aes(x=Offense, y=V1)) +
+  geom_bar(stat="identity", fill =  c("green", "blue", "orange", "red", "brown", "purple")) +
+  ggtitle("Average Daily Offenses (2014)")+
+  labs(y = "Average", x = "Offense Type")
+
+
+
+
+```
+
+The data presented in this document is public data and can be found here: http://www.civicapps.org/datasets/crime-incidents-2014. 
+
+Not all types of crime from the data set are covered in this summary document.  The ones focused on here are: Drug offenses, Assault, Robbery, DUIs, Sex offenses and Rape. 
+
+Importantly, this data set contains raw numbers of crimes reported and doesn't take into account things like population density.  Furthermore, the crimes were categorized by "major offense committed". I think this means that if someone committed multiple crimes during one outing, the most serious offense was the only one counted for each incident. Finally, both aggravated and simple assault were lumped together for the sake of brevity.  
+&nbsp;
+
+
+## Overall Crime 2014
+
+Below is an interactive graph of the covered crimes over 2014. You can zoom into specific time-periods to see trends.  
+
+  For example, on February 9th there is a dramatic decrease in all of the examined crimes.  I did a web search on this date and it turns out there was a enormous snow storm the night before.  I guess weather slows down everyone, including criminals! 
+
+  Conversely, there is an uptick in crime on July 5th, which is the Saturday immediately after the holiday.  It turns out we like to celebrate our independence with more than just fireworks, there were 32 assaults that day, which is more than twice the yearly average (15.4).   
+
+&nbsp;
+
+
+```{r fig.show = 'hold',   echo = FALSE}
+
+dygraph(C6)%>%
+  dyOptions(stackedGraph = TRUE, colors = c("green", "blue", "brown", "orange", "purple",  "red"))%>%
+  dyRangeSelector(height = 20, dateWindow = c("2014-01-01", "2014-03-01")) 
+  
+
+
+```
+&nbsp;
+
+###Overall Crime Mapped
+
+Below there is a map that depicts the number of crimes as a percentage of the total.  The data is represented this way so that the viewer can see where the "most" crime is happening. 
+&nbsp;
+
+
+```{r fig.width=20, fig.height = 20,  echo = FALSE}
+
+
+
+ggmap(map) + 
+  geom_point(data = O3, aes(x = lon, y = lat), 
+             color = "blue", size = O3$Per *1000,
+             alpha = .5) +
+  labs(x="Longitude",y="Latitude") +
+  ggtitle("Percentage of Crimes")
+
+
+```
+&nbsp;
+
+###2014 Averages of Each Crime Type
+&nbsp;
+
+The graph below contains the daily 2014 averages for each type of crime covered in this document. 
+&nbsp;
+
+
+
+```{r fig.show = 'hold',  echo = FALSE}
+
+
+ggplot(data=Avg, aes(x=Offense, y=V1)) +
+  geom_bar(stat="identity", fill =  c("green", "blue", "orange", "red", "brown", "purple")) +
+  ggtitle("Average Daily Offenses (2014)")+
+  labs(y = "Average", x = "Offense Type")
+
+
+
+```
+
+&nbsp;
+
+
+###Overall Crime: Neighborhoods with Most (Top 10)
+
+Below is a list of the "top 10" neighborhoods for the covered crimes. 
+&nbsp;
+
+
+```{r fig.show = 'hold',  echo = FALSE}
+
+
+O$state <- NULL
+O$Police.District <- NULL
+O$Neighborhood <- NULL
+OT <- O[order(-O$Major.Offense.Type),]
+OT <- as.data.table(OT)
+OT2 <-  OT[1:10, 1]
+OT2$Count <- OT[1:10, 2]
+colnames(OT2)[colnames(OT2)=="Address"] <- "Neighborhood"
+kable(OT2)
+
+
+
+```
+
+
