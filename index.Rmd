@@ -178,7 +178,7 @@ C6 <- subset(C5, select=c(1, 7,6, 5, 3,2,4))
 
 dygraph(C6)%>%
   dyOptions(stackedGraph = TRUE, colors = c("green", "blue", "brown", "orange", "purple", "red"))%>%
-  dyRangeSelector(height = 20)
+  dyRangeSelector(height = 2)
 
 
 #AVERAGES 
@@ -208,7 +208,7 @@ ggplot(data=Avg, aes(x=Offense, y=V1)) +
 
 ```
 
-The data presented in this document is public data and can be found here: http://www.civicapps.org/datasets/crime-incidents-2014. 
+The data presented in this document is public data and can be found [here](http://www.civicapps.org/datasets/crime-incidents-2014). 
 
 Not all types of crime from the data set are covered in this summary document.  The ones focused on here are: Drug offenses, Assault, Robbery, DUIs, Sex offenses and Rape. 
 
@@ -218,7 +218,7 @@ Importantly, this data set contains raw numbers of crimes reported and doesn't t
 
 ## Overall Crime 2014
 
-Below is an interactive graph of the covered crimes over 2014. You can zoom into specific time-periods to see trends.  
+Below is an interactive graph of the covered crimes over 2014. You can zoom into specific time-periods to see trends.  Importantly, this is a **"stacked"** line chart.  This means that the lines indicating the different types of crimes are stacked on top of one another.  This strategy allows you to clearly see the patterns in each crime type, but it also means that you must look at the stop and start of each color region on the y-axis to find out how many crimes were actually commited for that type. Altnernatively, you can **hover over** data points and a pop-up window will give you the counts for each crime area for that day.  
 
   For example, on February 9th there is a dramatic decrease in all of the examined crimes.  I did a web search on this date and it turns out there was a enormous snow storm the night before.  I guess weather slows down everyone, including criminals! 
 
@@ -231,12 +231,15 @@ Below is an interactive graph of the covered crimes over 2014. You can zoom into
 
 dygraph(C6)%>%
   dyOptions(stackedGraph = TRUE, colors = c("green", "blue", "brown", "orange", "purple",  "red"))%>%
-  dyRangeSelector(height = 20, dateWindow = c("2014-01-01", "2014-03-01")) 
+  dyRangeSelector(height = 30, dateWindow = c("2014-01-01", "2014-03-01")) 
   
 
 
 ```
+
 &nbsp;
+&nbsp;
+
 
 ###Overall Crime Mapped
 
