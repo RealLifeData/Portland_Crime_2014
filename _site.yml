@@ -3,12 +3,17 @@ output_dir: "."
 navbar:
   title: ""
   left:
+    - text: "Home"
+      href: home.html
     - text: "Report"
       href: index.html
     - text: "About"
       href: about.html
     
+    
 output:
   html_document:
     theme: flatly
     css: style.css
+    
+    

@@ -12,7 +12,9 @@ knitr::opts_chunk$set(echo = TRUE, warning= FALSE)
 
 
 
+
 ```{r include = FALSE}
+
 
 library(plyr)
 library(dplyr)
@@ -307,5 +309,4 @@ kable(OT2)
 
 
 ```
-
 
